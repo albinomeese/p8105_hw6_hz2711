@@ -7,12 +7,13 @@ output: github_document
 
 ```{r setup}
 library(tidyverse)
-library(readxl)
+library(modelr)
 library(p8105.datasets)
 
 knitr::opts_chunk$set(
-  warning = FALSE,
-  message = FALSE
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
 )
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 options(
@@ -24,6 +25,31 @@ scale_fill_discrete = scale_fill_viridis_d
 ```
 
 # Problem 1
+
+Load and clean birthweight data. Then propose regression model and compare to two other models. 
+
+```{r}
+birthweight_df = 
+  read_csv("data/birthweight.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(
+    mrace = as.factor(mrace),
+    frace = as.factor(frace),
+    babysex = as.factor(babysex),
+    malform = as.factor(malform)
+  )
+
+summary(birthweight_df)
+# check for missing data
+sum(complete.cases(birthweight_df))
+sum(!complete.cases(birthweight_df))
+```
+No missing data!
+
+I did a quick literature review on factors that influence a baby's birthweight. 
+```{r model}
+
+```
 
 # Problem 2
 
@@ -40,3 +66,4 @@ weather_df =
     tmax = tmax / 10) %>%
   select(name, id, everything())
 ```
+
