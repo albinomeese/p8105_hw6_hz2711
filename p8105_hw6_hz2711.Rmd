@@ -46,10 +46,70 @@ sum(!complete.cases(birthweight_df))
 ```
 No missing data!
 
-I did a quick literature review on factors that influence a baby's birthweight. 
-```{r model}
+I did a quick literature review on factors that influence a baby's birth weight. I found an article that suggested gestational age, maternal age, baby's sex, mother's race, and first born all have associations with birth weight. 
 
+The article can be found here:
+https://pubmed.ncbi.nlm.nih.gov/7570074/
+
+```{r model}
+model_1 = lm(bwt ~ gaweeks + momage + babysex + mrace + parity, data = birthweight_df)
+model_1 %>% broom::tidy()
 ```
+
+```{r residual_plot}
+birthweight_df %>% 
+  modelr::add_residuals(model_1) %>%
+  modelr::add_predictions(model_1) %>% 
+  ggplot(aes(x = pred, y = resid)) + 
+  geom_point(alpha = 0.3) +
+  geom_smooth(se = FALSE, method = "lm", color = "blue") + 
+  labs(
+    title = "Predicted vs. Residuals",
+    x = "Predicted",
+    y = "Residuals"
+    ) 
+```
+
+Now I will compare my model to two other models using cross validation.
+```{r}
+model_2 = lm(bwt ~ blength + gaweeks, data = birthweight_df)
+model_3 = lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex + bhead * blength * babysex, data = birthweight_df)
+```
+
+```{r}
+birthweight_cv = 
+    crossv_mc(birthweight_df, 100) %>% 
+    mutate(
+        train = map(train, as.tibble),
+        test = map(test, as.tibble)
+    ) %>% 
+   mutate(
+        model_1 = map(train, ~lm(bwt ~ gaweeks + momage + babysex + mrace + parity, data = .x)),
+        model_2 = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+        model_3 = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex + bhead * blength * babysex, data = .x))
+    ) %>% 
+    mutate(
+        rmse_model_1 = map2_dbl(model_1, test, ~rmse(model = .x,data = .y)),
+        rmse_model_2 = map2_dbl(model_2, test, ~rmse(model = .x,data = .y)),
+        rmse_model_3 = map2_dbl(model_3, test, ~rmse(model = .x,data = .y))
+    )
+
+#Violin plots
+birthweight_cv %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_"
+  ) %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
+```
+
+The plots reveal that model_3 has the best distribution of RMSE, and the model I selected based on a literature review actually has by far the worst distribution of RMSE. Therefore, it would probably be wise to develop a model from data-driven model building process. 
+```
+
 
 # Problem 2
 
